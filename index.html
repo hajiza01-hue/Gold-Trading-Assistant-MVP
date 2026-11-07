@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gold Trading Assistant</title>
+<meta name="description" content="เครื่องคำนวณ SD ราคาทองคำรายวัน พร้อมกราฟ สมุดเทรด และสำรองข้อมูลขึ้น Google Sheets">
+<meta name="theme-color" content="#0B1B33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preload" href="fonts/ibm-plex-sans-thai-thai-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 9.5V20h14V9.5"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" stroke-width="2.4"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3.5 3.5v17h17"/><path d="M7.5 15l4-5 3 3 5-6.5"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4.5h11a3 3 0 013 3V20H8a3 3 0 01-3-3V4.5z"/><path d="M8.5 4.5V17"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h2M11 17h9"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="8.5" cy="17" r="2.3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7.5 11l4.5 4.5 4.5-4.5M5 20h14"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 16V5M7.5 9L12 4.5 16.5 9M5 20h14"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5a4 4 0 01-.4-8A5.5 5.5 0 0117.2 9.2 4.7 4.7 0 0117 18.5H7z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  </defs>
+</svg>
+
+<div class="shell">
+
+  <!-- ===== Sidebar (จอ ≥ 900px) ===== -->
+  <aside class="side" aria-label="เมนูหลัก">
+    <div class="brand"><span class="logo" aria-hidden="true">Au</span><div><strong>Gold Trading</strong><span>Assistant</span></div></div>
+    <nav class="side-nav">
+      <button class="side-link" data-view="dash"><svg class="ic"><use href="#i-home"/></svg>ภาพรวม</button>
+      <button class="side-link" data-view="calc"><svg class="ic"><use href="#i-calc"/></svg>คำนวณ SD</button>
+      <button class="side-link" data-view="chart"><svg class="ic"><use href="#i-chart"/></svg>กราฟ</button>
+      <button class="side-link" data-view="journal"><svg class="ic"><use href="#i-book"/></svg>สมุดเทรด</button>
+      <button class="side-link" data-view="log"><svg class="ic"><use href="#i-history"/></svg>ประวัติ</button>
+      <button class="side-link" data-view="settings"><svg class="ic"><use href="#i-gear"/></svg>ตั้งค่า</button>
+    </nav>
+    <p class="side-foot">เครื่องมือช่วยคำนวณ ไม่ใช่คำแนะนำการลงทุน<br>ราคาทุกตัวกรอกโดยผู้ใช้</p>
+  </aside>
+
+  <div class="content">
+    <header class="top">
+      <div class="brand brand-top"><span class="logo" aria-hidden="true">Au</span><strong>Gold Assistant</strong></div>
+      <button id="sync-chip" class="chip" type="button" aria-label="สถานะการซิงค์ กดเพื่อซิงค์">ยังไม่เชื่อม Google</button>
+    </header>
+
+    <div id="banner" class="banner" role="alert" hidden></div>
+
+    <main id="main" tabindex="-1">
+
+      <!-- ===================== ภาพรวม ===================== -->
+      <section id="view-dash" class="view" aria-labelledby="h-dash">
+        <header class="page-head"><h2 id="h-dash">ภาพรวม</h2><p class="desc">สรุปข้อมูลล่าสุดที่คุณบันทึกไว้</p></header>
+        <div id="dash-body"></div>
+      </section>
+
+      <!-- ===================== คำนวณ SD ===================== -->
+      <section id="view-calc" class="view" aria-labelledby="h-calc" hidden>
+        <header class="page-head">
+          <h2 id="h-calc">คำนวณ SD ทองคำรายวัน</h2>
+          <p class="desc">กรอก 4 ค่าจากหน้าจอเทรดตอนเช้า ระบบคำนวณระดับ Buy / Sell ให้ทันที</p>
+        </header>
+        <p id="edit-note" class="notice" hidden></p>
+        <p id="calc-saved" class="saved" role="status" hidden></p>
+
+        <div class="calc-grid">
+          <form id="calc-form" class="form" novalidate autocomplete="off">
+            <div class="form-tools">
+              <button type="button" id="btn-clear" class="link-btn">ล้างค่าเริ่มใหม่</button>
+              <button type="button" id="btn-example" class="link-btn">ดูตัวอย่างจากไฟล์ Excel</button>
+            </div>
+
+            <fieldset class="group">
+              <legend><span class="step">1</span>ข้อมูลตอนเช้า</legend>
+              <div class="fld"><label for="f-date">วันที่</label>
+                <div class="inp"><input id="f-date" type="date" required></div></div>
+
+              <div class="two">
+                <div class="fld"><label for="f-futures">ราคาเปิด Futures</label>
+                  <div class="inp"><span class="pre">$</span><input id="f-futures" inputmode="decimal" placeholder="3,941"></div>
+                  <div class="err" id="e-futures" aria-live="polite"></div></div>
+                <div class="fld"><label for="f-iv">IV / Vol</label>
+                  <div class="inp"><input id="f-iv" inputmode="decimal" placeholder="36.46"><span class="suf">%</span></div>
+                  <div class="err" id="e-iv" aria-live="polite"></div></div>
+              </div>
+              <div class="two">
+                <div class="fld"><label for="f-basis">Basis (Futures − Spot)</label>
+                  <div class="inp"><span class="pre">$</span><input id="f-basis" inputmode="decimal" placeholder="10"></div>
+                  <div class="err" id="e-basis" aria-live="polite"></div></div>
+                <div class="fld"><label for="f-dte">DTE (ปรับได้)</label>
+                  <div class="inp"><input id="f-dte" inputmode="decimal" placeholder="0.56"><span class="suf">วัน</span></div>
+                  <div class="err" id="e-dte" aria-live="polite"></div></div>
+              </div>
+              <details class="help"><summary>แต่ละช่องคืออะไร? (สำหรับผู้เริ่มต้น)</summary>
+                <dl>
+                  <dt>ราคาเปิด Futures</dt><dd>ราคาทองคำสัญญาล่วงหน้า ณ ตอนเปิดตลาดเช้านี้ ดูได้จากโปรแกรมเทรดของคุณ</dd>
+                  <dt>IV / Vol</dt><dd>ความผันผวนที่ตลาดคาดการณ์ (% ต่อปี) ดูได้จากข้อมูล Options ทองคำ ยิ่งสูง ช่วงราคาที่คาดว่าจะวิ่งยิ่งกว้าง</dd>
+                  <dt>Basis</dt><dd>ราคา Futures ลบราคา Spot เช่น Futures 3,941 และ Spot 3,931 → Basis = 10</dd>
+                  <dt>DTE</dt><dd>จำนวนวันที่เหลือจนครบกำหนด ใส่เศษส่วนได้ เช่น 0.56 ≈ 56% ของวัน</dd>
+                </dl></details>
+              <div class="fld"><label for="f-days">จำนวนวันต่อปี</label>
+                <div class="inp narrow"><input id="f-days" inputmode="decimal"><span class="suf">วัน</span></div>
+                <div class="hint">ปกติใช้ 365</div><div class="err" id="e-daysPerYear" aria-live="polite"></div></div>
+            </fieldset>
+
+            <details id="intra" class="group fold">
+              <summary><span class="step">2</span><span class="st">ข้อมูลระหว่างวัน / หลังปิดตลาด<em>ไม่บังคับ — กรอกเมื่อต้องการ</em></span></summary>
+              <div class="fold-body">
+                <div class="fld"><label for="f-intraday">ราคาตอนนี้ (Intraday)</label>
+                  <div class="inp"><span class="pre">$</span><input id="f-intraday" inputmode="decimal" placeholder="กรอกจากหน้าจอเทรด"></div>
+                  <div class="err" id="e-intraday" aria-live="polite"></div></div>
+                <div class="two">
+                  <div class="fld"><label for="f-high">สูงสุดของวัน (จริง)</label>
+                    <div class="inp"><span class="pre">$</span><input id="f-high" inputmode="decimal"></div>
+                    <div class="err" id="e-high" aria-live="polite"></div></div>
+                  <div class="fld"><label for="f-low">ต่ำสุดของวัน (จริง)</label>
+                    <div class="inp"><span class="pre">$</span><input id="f-low" inputmode="decimal"></div>
+                    <div class="err" id="e-low" aria-live="polite"></div></div>
+                </div>
+                <div class="hint">กรอกสูงสุด/ต่ำสุดจริงตอนปิดตลาด เพื่อดูสถิติว่าราคาแตะระดับ SD บ่อยแค่ไหน</div>
+                <div class="fld"><label for="f-note">หมายเหตุ</label><div class="inp"><textarea id="f-note" rows="2"></textarea></div></div>
+              </div>
+            </details>
+
+            <div class="savebar">
+              <div class="sb-sum" id="sb-sum" aria-live="polite">กรอกข้อมูลให้ครบ</div>
+              <button type="button" id="btn-save" class="btn gold lg"><svg class="ic"><use href="#i-check"/></svg>บันทึก Snapshot</button>
+            </div>
+          </form>
+
+          <div class="results" id="calc-result" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- ===================== กราฟ ===================== -->
+      <section id="view-chart" class="view" aria-labelledby="h-chart" hidden>
+        <header class="page-head"><h2 id="h-chart">กราฟระดับ SD</h2><p class="desc">เส้น Buy / Sell ของแต่ละวัน เทียบกับราคาที่คุณกรอก</p></header>
+        <div id="chart-body"></div>
+      </section>
+
+      <!-- ===================== สมุดเทรด ===================== -->
+      <section id="view-journal" class="view" aria-labelledby="h-journal" hidden>
+        <header class="page-head"><h2 id="h-journal">สมุดเทรด</h2><p class="desc">บันทึกการซื้อ-ขาย และดูกำไร/ขาดทุนเทียบกับระดับ SD</p></header>
+        <div id="j-summary"></div>
+        <div class="split">
+          <form id="j-form" class="form" novalidate autocomplete="off">
+            <fieldset class="group">
+              <legend id="j-title">เพิ่มรายการเทรด</legend>
+              <div class="fld"><label for="j-date">วันที่</label><div class="inp"><input id="j-date" type="date"></div></div>
+              <fieldset class="field side-pick">
+                <legend>ฝั่ง</legend>
+                <label class="seg buy"><input type="radio" name="j-side" value="BUY" checked><span>ซื้อ <b>BUY</b></span></label>
+                <label class="seg sell"><input type="radio" name="j-side" value="SELL"><span>ขาย <b>SELL</b></span></label>
+              </fieldset>
+              <div class="two">
+                <div class="fld"><label for="j-entry">ราคาเข้า</label><div class="inp"><span class="pre">$</span><input id="j-entry" inputmode="decimal"></div><div class="err" id="je-entry" aria-live="polite"></div></div>
+                <div class="fld"><label for="j-exit">ราคาออก</label><div class="inp"><span class="pre">$</span><input id="j-exit" inputmode="decimal"></div><div class="hint">เว้นว่างถ้ายังไม่ปิด</div><div class="err" id="je-exit" aria-live="polite"></div></div>
+              </div>
+              <div class="two">
+                <div class="fld"><label for="j-sl">Stop Loss</label><div class="inp"><span class="pre">$</span><input id="j-sl" inputmode="decimal"></div><div class="err" id="je-sl" aria-live="polite"></div></div>
+                <div class="fld"><label for="j-tp">Take Profit</label><div class="inp"><span class="pre">$</span><input id="j-tp" inputmode="decimal"></div><div class="err" id="je-tp" aria-live="polite"></div></div>
+              </div>
+              <div class="fld"><label for="j-lots">จำนวน Lot</label><div class="inp narrow"><input id="j-lots" inputmode="decimal" value="1"><span class="suf">lot</span></div><div class="err" id="je-lots" aria-live="polite"></div></div>
+              <div class="fld"><label for="j-note">เหตุผล / หมายเหตุ</label><div class="inp"><textarea id="j-note" rows="2"></textarea></div></div>
+              <div class="actions">
+                <button type="button" id="j-save" class="btn gold lg"><svg class="ic"><use href="#i-check"/></svg>บันทึกรายการ</button>
+                <button type="button" id="j-cancel" class="btn" hidden>ยกเลิกการแก้ไข</button>
+              </div>
+            </fieldset>
+          </form>
+          <div id="j-list"></div>
+        </div>
+      </section>
+
+      <!-- ===================== ประวัติ ===================== -->
+      <section id="view-log" class="view" aria-labelledby="h-log" hidden>
+        <header class="page-head"><h2 id="h-log">ประวัติ Snapshot</h2><p class="desc">ข้อมูลย้อนหลังทั้งหมด แตะแถวเพื่อดูรายละเอียดหรือแก้ไข</p></header>
+        <div class="filters">
+          <div class="fld grow"><label for="l-q">ค้นหา</label><div class="inp"><input id="l-q" type="search" placeholder="วันที่ (เช่น 2026-11) หรือหมายเหตุ"></div></div>
+          <div class="fld"><label for="l-from">ตั้งแต่</label><div class="inp"><input id="l-from" type="date"></div></div>
+          <div class="fld"><label for="l-to">ถึง</label><div class="inp"><input id="l-to" type="date"></div></div>
+        </div>
+        <div id="log-list"></div>
+      </section>
+
+      <!-- ===================== เพิ่มเติม (มือถือ) ===================== -->
+      <section id="view-more" class="view" aria-labelledby="h-more" hidden>
+        <header class="page-head"><h2 id="h-more">เพิ่มเติม</h2></header>
+        <div class="menu-list">
+          <button type="button" data-go="log"><svg class="ic"><use href="#i-history"/></svg><span><b>ประวัติ Snapshot</b><small>ดูและแก้ไขข้อมูลย้อนหลัง</small></span><svg class="ic chev"><use href="#i-chev"/></svg></button>
+          <button type="button" data-go="settings"><svg class="ic"><use href="#i-gear"/></svg><span><b>ตั้งค่า</b><small>ขนาดตัวอักษร ธีม เชื่อม Google สำรองข้อมูล</small></span><svg class="ic chev"><use href="#i-chev"/></svg></button>
+        </div>
+      </section>
+
+      <!-- ===================== ตั้งค่า ===================== -->
+      <section id="view-settings" class="view" aria-labelledby="h-set" hidden>
+        <header class="page-head"><h2 id="h-set">ตั้งค่า</h2><p class="desc">ปรับหน้าจอ เชื่อม Google และสำรองข้อมูล</p></header>
+
+        <section class="set">
+          <div class="set-info"><h3>การแสดงผล</h3><p class="desc">เลือกขนาดตัวอักษรและธีมที่อ่านสบายตาที่สุด</p></div>
+          <div class="set-body">
+            <div class="fld"><span class="lbl">ขนาดตัวอักษร</span>
+              <div class="segs" role="group" aria-label="ขนาดตัวอักษร">
+                <button type="button" data-fs="1">ปกติ</button><button type="button" data-fs="1.15">ใหญ่</button><button type="button" data-fs="1.35">ใหญ่มาก</button>
+              </div></div>
+            <div class="fld"><span class="lbl">ธีมสี</span>
+              <div class="segs" role="group" aria-label="ธีมสี">
+                <button type="button" data-theme="light">สว่าง</button><button type="button" data-theme="dark">มืด</button><button type="button" data-theme="contrast">คอนทราสต์สูง</button>
+              </div></div>
+          </div>
+        </section>
+
+        <section class="set">
+          <div class="set-info"><h3>ค่าเริ่มต้น</h3><p class="desc">ใช้เป็นค่าตั้งต้นในเครื่องคำนวณและสมุดเทรด</p></div>
+          <div class="set-body">
+            <div class="fld"><label for="s-days">จำนวนวันต่อปี</label><div class="inp narrow"><input id="s-days" inputmode="decimal"><span class="suf">วัน</span></div></div>
+            <div class="fld"><label for="s-mult">มูลค่า $ ต่อราคาขยับ $1 ต่อ 1 Lot</label><div class="inp narrow"><span class="pre">$</span><input id="s-mult" inputmode="decimal"></div>
+              <div class="hint">ทองคำ 1 Lot = 100 ออนซ์ → $100 (ปรับตามโบรกเกอร์ของคุณ)</div></div>
+            <button type="button" id="s-save-defaults" class="btn">บันทึกค่าเริ่มต้น</button>
+          </div>
+        </section>
+
+        <section class="set">
+          <div class="set-info"><h3>เชื่อมต่อ Google</h3><p class="desc">เก็บข้อมูลใน Google Sheets และรูปกราฟใน Google Drive ของคุณเอง (ฟรี) ดูขั้นตอนใน README</p></div>
+          <div class="set-body">
+            <div class="fld"><label for="s-url">Web App URL (ลงท้าย /exec)</label><div class="inp"><input id="s-url" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec"></div></div>
+            <div class="fld"><label for="s-token">รหัสลับ (SECRET)</label><div class="inp"><input id="s-token" type="password" autocomplete="off"></div></div>
+            <label class="check"><input type="checkbox" id="s-auto"><span>ซิงค์อัตโนมัติหลังบันทึก</span></label>
+            <div class="actions">
+              <button type="button" id="s-test" class="btn gold">ทดสอบการเชื่อมต่อ</button>
+              <button type="button" id="s-sync" class="btn">ซิงค์ตอนนี้</button>
+              <button type="button" id="s-disconnect" class="btn quiet">ยกเลิกการเชื่อมต่อ</button>
+            </div>
+            <p id="s-status" class="hint" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <section class="set">
+          <div class="set-info"><h3>ส่งออก / สำรองข้อมูล</h3><p class="desc">ไฟล์ CSV เปิดใน Excel ภาษาไทยได้</p></div>
+          <div class="set-body">
+            <div class="actions col">
+              <button type="button" class="btn" id="x-snap"><svg class="ic"><use href="#i-down"/></svg>ส่งออก Snapshot (CSV)</button>
+              <button type="button" class="btn" id="x-jour"><svg class="ic"><use href="#i-down"/></svg>ส่งออกสมุดเทรด (CSV)</button>
+              <button type="button" class="btn" id="x-json"><svg class="ic"><use href="#i-down"/></svg>สำรองทั้งหมด (JSON)</button>
+              <button type="button" class="btn" id="x-drive"><svg class="ic"><use href="#i-cloud"/></svg>สำรอง JSON ขึ้น Google Drive</button>
+              <label class="btn file"><svg class="ic"><use href="#i-up"/></svg>นำเข้าไฟล์สำรอง (JSON)<input type="file" id="x-import" accept="application/json,.json" hidden></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="set">
+          <div class="set-info"><h3>บันทึกข้อผิดพลาด</h3><p class="desc">ใช้แจ้งผู้ดูแลเมื่อมีปัญหา</p></div>
+          <div class="set-body">
+            <div id="err-log" class="hint">ไม่มีข้อผิดพลาด</div>
+            <div class="actions"><button type="button" class="btn" id="err-clear">ล้างรายการ</button></div>
+          </div>
+        </section>
+
+        <section class="set danger-zone">
+          <div class="set-info"><h3>ลบข้อมูลในเครื่อง</h3><p class="desc">ลบเฉพาะในเครื่องนี้ ไม่ลบข้อมูลใน Google Sheets</p></div>
+          <div class="set-body"><button type="button" id="wipe" class="btn danger">ลบข้อมูลทั้งหมดในเครื่องนี้</button></div>
+        </section>
+
+        <p class="hint center">เครื่องมือช่วยคำนวณ ไม่ใช่คำแนะนำการลงทุน · ราคาทุกตัวกรอกโดยผู้ใช้ ไม่มีการดึงราคาตลาด</p>
+      </section>
+    </main>
+  </div>
+</div>
+
+<nav class="tabs" aria-label="เมนูหลัก">
+  <button class="tab" data-view="dash"><svg class="ic"><use href="#i-home"/></svg><span>ภาพรวม</span></button>
+  <button class="tab" data-view="calc"><svg class="ic"><use href="#i-calc"/></svg><span>คำนวณ</span></button>
+  <button class="tab" data-view="chart"><svg class="ic"><use href="#i-chart"/></svg><span>กราฟ</span></button>
+  <button class="tab" data-view="journal"><svg class="ic"><use href="#i-book"/></svg><span>สมุดเทรด</span></button>
+  <button class="tab" data-view="more"><svg class="ic"><use href="#i-more"/></svg><span>เพิ่มเติม</span></button>
+</nav>
+
+<div id="toasts" class="toasts" aria-live="polite" role="status"></div>
+
+<script src="js/calc.js"></script>
+<script src="js/store.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/exporter.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
